@@ -921,3 +921,369 @@ def animate_motion_with_media(env,p_root_list,quat_root_list,q_list,rev_joint_na
     env.close_viewer()
     # Make video
     media.show_video(img_list,fps=HZ)
+
+### extra functions
+
+def rpy2R(r0, order=[0,1,2]):
+    c1 = np.math.cos(r0[0]); c2 = np.math.cos(r0[1]); c3 = np.math.cos(r0[2])
+    s1 = np.math.sin(r0[0]); s2 = np.math.sin(r0[1]); s3 = np.math.sin(r0[2])
+
+    a1 = np.array([[1,0,0],[0,c1,-s1],[0,s1,c1]])
+    a2 = np.array([[c2,0,s2],[0,1,0],[-s2,0,c2]])
+    a3 = np.array([[c3,-s3,0],[s3,c3,0],[0,0,1]])
+
+    a_list = [a1,a2,a3]
+    a = np.matmul(np.matmul(a_list[order[0]],a_list[order[1]]),a_list[order[2]])
+
+    assert a.shape == (3,3)
+    return a
+
+def get_uv_dict_em(p):
+    uv_dict = {}
+
+    # Upper Body
+    uv_dict['root2spine'] = np_uv(p[11,:] - p[0,:])
+    uv_dict['spine2neck'] = np_uv(p[13,:] - p[11,:])
+    uv_dict['neck2rs'] = np_uv(p[17,:] - p[13,:])
+    uv_dict['rs2re'] = np_uv(p[18,:] - p[17,:])
+    uv_dict['re2rw'] = np_uv(p[19,:] - p[18,:])
+    uv_dict['neck2ls'] = np_uv(p[45,:] - p[13,:])
+    uv_dict['ls2le'] = np_uv(p[46,:] - p[45,:])
+    uv_dict['le2lw'] = np_uv(p[47,:] - p[46,:])
+
+    # Lower Body
+    uv_dict['root2rp'] = np_uv(p[1,:] - p[0,:])
+    uv_dict['rp2rk'] = np_uv(p[2,:] - p[1,:])
+    uv_dict['rk2ra'] = np_uv(p[3,:] - p[2,:])
+    uv_dict['root2lp'] = np_uv(p[5,:] - p[0,:])
+    uv_dict['lp2lk'] = np_uv(p[6,:] - p[5,:])
+    uv_dict['lk2la'] = np_uv(p[7,:] - p[6,:])
+
+    # Right Hand
+    uv_dict['rw2r1meta'] = np_uv(p[20,:] - p[19,:])
+    uv_dict['rw2r2meta'] = np_uv(p[24,:] - p[19,:])
+    uv_dict['rw2r3meta'] = np_uv(p[29,:] - p[19,:])
+    uv_dict['rw2r4meta'] = np_uv(p[34,:] - p[19,:])
+    uv_dict['rw2r5meta'] = np_uv(p[39,:] - p[19,:])
+    ## Thumb
+    uv_dict['r1meta2r1prox'] = np_uv(p[21,:] - p[20,:])
+    uv_dict['r1prox2r1dist'] = np_uv(p[22,:] - p[21,:])
+    uv_dict['r1dist2r1tip'] = np_uv(p[23,:] - p[22,:])
+    ## Index
+    uv_dict['r2meta2r2prox'] = np_uv(p[25,:] - p[24,:])
+    uv_dict['r2prox2r2med'] = np_uv(p[26,:] - p[25,:])
+    uv_dict['r2med2r2dist'] = np_uv(p[27,:] - p[26,:])
+    uv_dict['r2dist2r2tip'] = np_uv(p[28,:] - p[27,:])
+    ## Middle
+    uv_dict['r3meta2r3prox'] = np_uv(p[30,:] - p[29,:])
+    uv_dict['r3prox2r3med'] = np_uv(p[31,:] - p[30,:])
+    uv_dict['r3med2r3dist'] = np_uv(p[32,:] - p[31,:])
+    uv_dict['r3dist2r3tip'] = np_uv(p[33,:] - p[32,:])
+    ## Ring
+    uv_dict['r4meta2r4prox'] = np_uv(p[35,:] - p[34,:])
+    uv_dict['r4prox2r4med'] = np_uv(p[36,:] - p[35,:])
+    uv_dict['r4med2r4dist'] = np_uv(p[37,:] - p[36,:])
+    uv_dict['r4dist2r4tip'] = np_uv(p[38,:] - p[37,:])
+    ## Pinky
+    uv_dict['r5meta2r5prox'] = np_uv(p[40,:] - p[39,:])
+    uv_dict['r5prox2r5med'] = np_uv(p[41,:] - p[40,:])
+    uv_dict['r5med2r5dist'] = np_uv(p[42,:] - p[41,:])
+    uv_dict['r5dist2r5tip'] = np_uv(p[43,:] - p[42,:])
+
+    # Left Hand
+    uv_dict['lw2l1meta'] = np_uv(p[48,:] - p[47,:])
+    uv_dict['lw2l2meta'] = np_uv(p[52,:] - p[47,:])
+    uv_dict['lw2l3meta'] = np_uv(p[57,:] - p[47,:])
+    uv_dict['lw2l4meta'] = np_uv(p[62,:] - p[47,:])
+    uv_dict['lw2l5meta'] = np_uv(p[67,:] - p[47,:])
+    ## Thumb
+    uv_dict['l1meta2l1prox'] = np_uv(p[49,:] - p[48,:])
+    uv_dict['l1prox2l1dist'] = np_uv(p[50,:] - p[49,:])
+    uv_dict['l1dist2l1tip'] = np_uv(p[51,:] - p[50,:])
+    ## Index
+    uv_dict['l2meta2l2prox'] = np_uv(p[53,:] - p[52,:])
+    uv_dict['l2prox2l2med'] = np_uv(p[54,:] - p[53,:])
+    uv_dict['l2med2l2dist'] = np_uv(p[55,:] - p[54,:])
+    uv_dict['l2dist2l2tip'] = np_uv(p[56,:] - p[55,:])
+    ## Middle
+    uv_dict['l3meta2l3prox'] = np_uv(p[58,:] - p[57,:])
+    uv_dict['l3prox2l3med'] = np_uv(p[59,:] - p[58,:])
+    uv_dict['l3med2l3dist'] = np_uv(p[60,:] - p[59,:])
+    uv_dict['l3dist2l3tip'] = np_uv(p[61,:] - p[60,:])
+    ## Ring
+    uv_dict['l4meta2l4prox'] = np_uv(p[63,:] - p[62,:])
+    uv_dict['l4prox2l4med'] = np_uv(p[64,:] - p[63,:])
+    uv_dict['l4med2l4dist'] = np_uv(p[65,:] - p[64,:])
+    uv_dict['l4dist2l4tip'] = np_uv(p[66,:] - p[65,:])
+    ## Pinky
+    uv_dict['l5meta2l5prox'] = np_uv(p[68,:] - p[67,:])
+    uv_dict['l5prox2l5med'] = np_uv(p[69,:] - p[68,:])
+    uv_dict['l5med2l5dist'] = np_uv(p[70,:] - p[69,:])
+    uv_dict['l5dist2l5tip'] = np_uv(p[71,:] - p[70,:])
+
+    return uv_dict
+
+def get_p_target_em(p, uv_dict):
+    len_rig = {}
+    len_rig['root2spine'] = 0.1990
+    len_rig['spine2neck'] = 0.1990
+    len_rig['neck2rs'] = 0.1809
+    len_rig['rs2re'] = 0.2768
+    len_rig['re2rw'] = 0.1815
+    len_rig['neck2ls'] = 0.1809
+    len_rig['ls2le'] = 0.2768
+    len_rig['le2lw'] = 0.1815
+    len_rig['root2rp'] = 0.1357
+    len_rig['rp2rk'] = 0.4049
+    len_rig['rk2ra'] = 0.4057
+    len_rig['root2lp'] = 0.1357
+    len_rig['lp2lk'] = 0.4049
+    len_rig['lk2la'] = 0.4057
+
+    p_target = {}
+    p_target['right_pelvis'] = p[0,:] + len_rig['root2rp'] * uv_dict['root2rp']
+    p_target['right_knee'] = p_target['right_pelvis'] + len_rig['rp2rk'] * uv_dict['rp2rk']
+    p_target['right_ankle'] = p_target['right_knee'] + len_rig['rk2ra'] * uv_dict['rk2ra']
+    p_target['left_pelvis'] = p[0,:] + len_rig['root2lp'] * uv_dict['root2lp']
+    p_target['left_knee'] = p_target['left_pelvis'] + len_rig['lp2lk'] * uv_dict['lp2lk']
+    p_target['left_ankle'] = p_target['left_knee'] + len_rig['lk2la'] * uv_dict['lk2la']
+    p_target['spine'] = p[0,:] + len_rig['root2spine'] * uv_dict['root2spine']
+    p_target['neck'] = p_target['spine'] + len_rig['spine2neck'] * uv_dict['spine2neck']
+    p_target['right_shoulder'] = p_target['neck'] + len_rig['neck2rs'] * uv_dict['neck2rs']
+    p_target['right_elbow'] = p_target['right_shoulder'] + len_rig['rs2re'] * uv_dict['rs2re']
+    p_target['right_hand'] = p_target['right_elbow'] + len_rig['re2rw'] * uv_dict['re2rw']
+    p_target['left_shoulder'] = p_target['neck'] + len_rig['neck2ls'] * uv_dict['neck2ls']
+    p_target['left_elbow'] = p_target['left_shoulder'] + len_rig['ls2le'] * uv_dict['ls2le']
+    p_target['left_hand'] = p_target['left_elbow'] + len_rig['le2lw'] * uv_dict['le2lw']
+
+    len_rig['rw2r1meta'] = 0.0411049
+    len_rig['rw2r2meta'] = 0.0392563
+    len_rig['rw2r3meta'] = 0.0360309
+    len_rig['rw2r4meta'] = 0.0350433
+    len_rig['rw2r5meta'] = 0.0351108
+
+    len_rig['r1meta2r1prox'] = 0.03788
+    len_rig['r1prox2r1dist'] = 0.02631
+    len_rig['r1dist2r1tip'] = 0.02256
+
+    len_rig['r2meta2r2prox'] = 0.0546439
+    len_rig['r2prox2r2med'] = 0.03723
+    len_rig['r2med2r2dist'] = 0.02111
+    len_rig['r2dist2r2tip'] = 0.01857
+
+    len_rig['r3meta2r3prox'] = 0.0533249
+    len_rig['r3prox2r3med'] = 0.04062
+    len_rig['r3med2r3dist'] = 0.02547
+    len_rig['r3dist2r3tip'] = 0.02031
+
+    len_rig['r4meta2r4prox'] = 0.0479248
+    len_rig['r4prox2r4med'] = 0.03541
+    len_rig['r4med2r4dist'] = 0.02456
+    len_rig['r4dist2r4tip'] = 0.01910
+
+    len_rig['r5meta2r5prox'] = 0.0440437
+    len_rig['r5prox2r5med'] = 0.02835
+    len_rig['r5med2r5dist'] = 0.01792
+    len_rig['r5dist2r5tip'] = 0.01692
+
+    len_rig['lw2l1meta'] = 0.0411049
+    len_rig['lw2l2meta'] = 0.0392563
+    len_rig['lw2l3meta'] = 0.0360309
+    len_rig['lw2l4meta'] = 0.0350433
+    len_rig['lw2l5meta'] = 0.0351108
+
+    len_rig['l1meta2l1prox'] = 0.03788
+    len_rig['l1prox2l1dist'] = 0.02631
+    len_rig['l1dist2l1tip'] = 0.02256
+
+    len_rig['l2meta2l2prox'] = 0.0546439
+    len_rig['l2prox2l2med'] = 0.03723
+    len_rig['l2med2l2dist'] = 0.02111
+    len_rig['l2dist2l2tip'] = 0.01857
+
+    len_rig['l3meta2l3prox'] = 0.0533249
+    len_rig['l3prox2l3med'] = 0.04062
+    len_rig['l3med2l3dist'] = 0.02547
+    len_rig['l3dist2l3tip'] = 0.02031
+
+    len_rig['l4meta2l4prox'] = 0.0479248
+    len_rig['l4prox2l4med'] = 0.03541
+    len_rig['l4med2l4dist'] = 0.02456
+    len_rig['l4dist2l4tip'] = 0.01910
+
+    len_rig['l5meta2l5prox'] = 0.0440437
+    len_rig['l5prox2l5med'] = 0.02835
+    len_rig['l5med2l5dist'] = 0.01792
+    len_rig['l5dist2l5tip'] = 0.01692
+
+    p_target['rh_meta_1'] = p_target['right_hand'] + len_rig['rw2r1meta'] * uv_dict['rw2r1meta']
+    p_target['rh_meta_2'] = p_target['right_hand'] + len_rig['rw2r2meta'] * uv_dict['rw2r2meta']
+    p_target['rh_meta_3'] = p_target['right_hand'] + len_rig['rw2r3meta'] * uv_dict['rw2r3meta']
+    p_target['rh_meta_4'] = p_target['right_hand'] + len_rig['rw2r4meta'] * uv_dict['rw2r4meta']
+    p_target['rh_meta_5'] = p_target['right_hand'] + len_rig['rw2r5meta'] * uv_dict['rw2r5meta']
+    
+    p_target['rh_prox_1'] = p_target['rh_meta_1'] + len_rig['r1meta2r1prox'] * uv_dict['r1meta2r1prox']
+    p_target['rh_dist_1'] = p_target['rh_prox_1'] + len_rig['r1prox2r1dist'] * uv_dict['r1prox2r1dist']
+    p_target['rh_tip_1'] = p_target['rh_dist_1'] + len_rig['r1dist2r1tip'] * uv_dict['r1dist2r1tip']
+
+    p_target['rh_prox_2'] = p_target['rh_meta_2'] + len_rig['r2meta2r2prox'] * uv_dict['r2meta2r2prox']
+    p_target['rh_med_2'] = p_target['rh_prox_2'] + len_rig['r2prox2r2med'] * uv_dict['r2prox2r2med']
+    p_target['rh_dist_2'] = p_target['rh_med_2'] + len_rig['r2med2r2dist'] * uv_dict['r2med2r2dist']
+    p_target['rh_tip_2'] = p_target['rh_dist_2'] + len_rig['r2dist2r2tip'] * uv_dict['r2dist2r2tip']
+
+    p_target['rh_prox_3'] = p_target['rh_meta_3'] + len_rig['r3meta2r3prox'] * uv_dict['r3meta2r3prox']
+    p_target['rh_med_3'] = p_target['rh_prox_3'] + len_rig['r3prox2r3med'] * uv_dict['r3prox2r3med']
+    p_target['rh_dist_3'] = p_target['rh_med_3'] + len_rig['r3med2r3dist'] * uv_dict['r3med2r3dist']
+    p_target['rh_tip_3'] = p_target['rh_dist_3'] + len_rig['r3dist2r3tip'] * uv_dict['r3dist2r3tip']
+
+    p_target['rh_prox_4'] = p_target['rh_meta_4'] + len_rig['r4meta2r4prox'] * uv_dict['r4meta2r4prox']
+    p_target['rh_med_4'] = p_target['rh_prox_4'] + len_rig['r4prox2r4med'] * uv_dict['r4prox2r4med']
+    p_target['rh_dist_4'] = p_target['rh_med_4'] + len_rig['r4med2r4dist'] * uv_dict['r4med2r4dist']
+    p_target['rh_tip_4'] = p_target['rh_dist_4'] + len_rig['r4dist2r4tip'] * uv_dict['r4dist2r4tip']
+
+    p_target['rh_prox_5'] = p_target['rh_meta_5'] + len_rig['r5meta2r5prox'] * uv_dict['r5meta2r5prox']
+    p_target['rh_med_5'] = p_target['rh_prox_5'] + len_rig['r5prox2r5med'] * uv_dict['r5prox2r5med']
+    p_target['rh_dist_5'] = p_target['rh_med_5'] + len_rig['r5med2r5dist'] * uv_dict['r5med2r5dist']
+    p_target['rh_tip_5'] = p_target['rh_dist_5'] + len_rig['r5dist2r5tip'] * uv_dict['r5dist2r5tip']
+
+    p_target['lh_meta_1'] = p_target['left_hand'] + len_rig['lw2l1meta'] * uv_dict['lw2l1meta']
+    p_target['lh_meta_2'] = p_target['left_hand'] + len_rig['lw2l2meta'] * uv_dict['lw2l2meta']
+    p_target['lh_meta_3'] = p_target['left_hand'] + len_rig['lw2l3meta'] * uv_dict['lw2l3meta']
+    p_target['lh_meta_4'] = p_target['left_hand'] + len_rig['lw2l4meta'] * uv_dict['lw2l4meta']
+    p_target['lh_meta_5'] = p_target['left_hand'] + len_rig['lw2l5meta'] * uv_dict['lw2l5meta']
+
+    p_target['lh_prox_1'] = p_target['lh_meta_1'] + len_rig['l1meta2l1prox'] * uv_dict['l1meta2l1prox']
+    p_target['lh_dist_1'] = p_target['lh_prox_1'] + len_rig['l1prox2l1dist'] * uv_dict['l1prox2l1dist']
+    p_target['lh_tip_1'] = p_target['lh_dist_1'] + len_rig['l1dist2l1tip'] * uv_dict['l1dist2l1tip']
+
+    p_target['lh_prox_2'] = p_target['lh_meta_2'] + len_rig['l2meta2l2prox'] * uv_dict['l2meta2l2prox']
+    p_target['lh_med_2'] = p_target['lh_prox_2'] + len_rig['l2prox2l2med'] * uv_dict['l2prox2l2med']
+    p_target['lh_dist_2'] = p_target['lh_med_2'] + len_rig['l2med2l2dist'] * uv_dict['l2med2l2dist']
+    p_target['lh_tip_2'] = p_target['lh_dist_2'] + len_rig['l2dist2l2tip'] * uv_dict['l2dist2l2tip']
+
+    p_target['lh_prox_3'] = p_target['lh_meta_3'] + len_rig['l3meta2l3prox'] * uv_dict['l3meta2l3prox']
+    p_target['lh_med_3'] = p_target['lh_prox_3'] + len_rig['l3prox2l3med'] * uv_dict['l3prox2l3med']
+    p_target['lh_dist_3'] = p_target['lh_med_3'] + len_rig['l3med2l3dist'] * uv_dict['l3med2l3dist']
+    p_target['lh_tip_3'] = p_target['lh_dist_3'] + len_rig['l3dist2l3tip'] * uv_dict['l3dist2l3tip']
+
+    p_target['lh_prox_4'] = p_target['lh_meta_4'] + len_rig['l4meta2l4prox'] * uv_dict['l4meta2l4prox']
+    p_target['lh_med_4'] = p_target['lh_prox_4'] + len_rig['l4prox2l4med'] * uv_dict['l4prox2l4med']
+    p_target['lh_dist_4'] = p_target['lh_med_4'] + len_rig['l4med2l4dist'] * uv_dict['l4med2l4dist']
+    p_target['lh_tip_4'] = p_target['lh_dist_4'] + len_rig['l4dist2l4tip'] * uv_dict['l4dist2l4tip']
+
+    p_target['lh_prox_5'] = p_target['lh_meta_5'] + len_rig['l5meta2l5prox'] * uv_dict['l5meta2l5prox']
+    p_target['lh_med_5'] = p_target['lh_prox_5'] + len_rig['l5prox2l5med'] * uv_dict['l5prox2l5med']
+    p_target['lh_dist_5'] = p_target['lh_med_5'] + len_rig['l5med2l5dist'] * uv_dict['l5med2l5dist']
+    p_target['lh_tip_5'] = p_target['lh_dist_5'] + len_rig['l5dist2l5tip'] * uv_dict['l5dist2l5tip']
+
+    return p_target
+
+def get_uv_dict_myohuman(p):
+    uv_dict = {}
+
+    # Lower Body
+    uv_dict['pelvis2femur_r'] = np_uv(p[1,:] - p[0,:])
+    uv_dict['femur_r2tibia_r'] = np_uv(p[2,:] - p[1,:])
+    uv_dict['tibia_r2talus_r'] = np_uv(p[3,:] - p[2,:])
+    uv_dict['pelvis2femur_l'] = np_uv(p[5,:] - p[0,:])
+    uv_dict['femur_l2tibia_l'] = np_uv(p[6,:] - p[5,:])
+    uv_dict['tibia_l2talus_l'] = np_uv(p[7,:] - p[6,:])
+    
+    # Upper Body
+    uv_dict['pelvis2torso'] = np_uv(p[9,:] - p[0,:])
+    uv_dict['torso2humerus_r'] = np_uv(p[17,:] - p[9,:])
+    uv_dict['humerus_r2radius'] = np_uv(p[18,:] - p[17,:])
+    uv_dict['radius2lunate'] = np_uv(p[19,:] - p[18,:])
+    uv_dict['torso2humerus_l'] = np_uv(p[45,:] - p[9,:])
+    uv_dict['humerus_l2radius_l'] = np_uv(p[46,:] - p[45,:])
+    uv_dict['radius_l2lunate_l'] = np_uv(p[47,:] - p[46,:])
+
+    return uv_dict
+
+def get_p_target_myohuman(p, uv_dict):
+    len_rig = {}
+    len_rig['pelvis2femur_r'] = 0.12368013533304369
+    len_rig['femur_r2tibia_r'] = 0.4044269792040081
+    len_rig['tibia_r2talus_r'] = 0.4001249804748512
+    len_rig['pelvis2femur_l'] = 0.12368013533304369
+    len_rig['femur_l2tibia_l'] = 0.4044269792040081
+    len_rig['tibia_l2talus_l'] = 0.4001249804748512
+    len_rig['pelvis2torso'] = 0.12954821496261537
+    len_rig['torso2humerus_r'] = 0.408561138662257
+    len_rig['humerus_r2radius'] = 0.3003331483536241
+    len_rig['radius2lunate'] = 0.2439528642996429
+    len_rig['torso2humerus_l'] = 0.408561138662257
+    len_rig['humerus_l2radius_l'] = 0.3003331483536241
+    len_rig['radius_l2lunate_l'] = 0.2439528642996429
+
+    p_target = {}
+    p_target['femur_r'] = p[0,:] + len_rig['pelvis2femur_r'] * uv_dict['pelvis2femur_r']
+    p_target['tibia_r'] = p_target['femur_r'] + len_rig['femur_r2tibia_r'] * uv_dict['femur_r2tibia_r']
+    p_target['talus_r'] = p_target['tibia_r'] + len_rig['tibia_r2talus_r'] * uv_dict['tibia_r2talus_r']
+    p_target['femur_l'] = p[0,:] + len_rig['pelvis2femur_l'] * uv_dict['pelvis2femur_l']
+    p_target['tibia_l'] = p_target['femur_l'] + len_rig['femur_l2tibia_l'] * uv_dict['femur_l2tibia_l']
+    p_target['talus_l'] = p_target['tibia_l'] + len_rig['tibia_l2talus_l'] * uv_dict['tibia_l2talus_l']
+    p_target['torso'] = p[0,:] + len_rig['pelvis2torso'] * uv_dict['pelvis2torso']
+    p_target['humerus_r'] = p_target['torso'] + len_rig['torso2humerus_r'] * uv_dict['torso2humerus_r']
+    p_target['radius'] = p_target['humerus_r'] + len_rig['humerus_r2radius'] * uv_dict['humerus_r2radius']
+    p_target['lunate'] = p_target['radius'] + len_rig['radius2lunate'] * uv_dict['radius2lunate']
+    p_target['humerus_l'] = p_target['torso'] + len_rig['torso2humerus_l'] * uv_dict['torso2humerus_l']
+    p_target['radius_l'] = p_target['humerus_l'] + len_rig['humerus_l2radius_l'] * uv_dict['humerus_l2radius_l']
+    p_target['lunate_l'] = p_target['radius_l'] + len_rig['radius_l2lunate_l'] * uv_dict['radius_l2lunate_l']
+    
+    return p_target
+
+def get_uv_dict_smpl(p):
+    uv_dict = {}
+
+    # Lower Body
+    uv_dict['pelvis2right_hip'] = np_uv(p[1,:] - p[0,:])
+    uv_dict['right_hip2right_knee'] = np_uv(p[2,:] - p[1,:])
+    uv_dict['right_knee2right_ankle'] = np_uv(p[3,:] - p[2,:])
+    uv_dict['pelvis2left_hip'] = np_uv(p[5,:] - p[0,:])
+    uv_dict['left_hip2left_knee'] = np_uv(p[6,:] - p[5,:])
+    uv_dict['left_knee2left_ankle'] = np_uv(p[7,:] - p[6,:])
+    
+    # Upper Body
+    uv_dict['pelvis2spine'] = np_uv(p[9,:] - p[0,:])
+    uv_dict['spine2right_shoulder'] = np_uv(p[17,:] - p[9,:])
+    uv_dict['right_shoulder2right_elbow'] = np_uv(p[18,:] - p[17,:])
+    uv_dict['right_elbow2right_wrist'] = np_uv(p[19,:] - p[18,:])
+    uv_dict['spine2left_shoulder'] = np_uv(p[45,:] - p[9,:])
+    uv_dict['left_shoulder2left_elbow'] = np_uv(p[46,:] - p[45,:])
+    uv_dict['left_elbow2left_wrist'] = np_uv(p[47,:] - p[46,:])
+
+    return uv_dict
+
+def get_p_target_smpl(p, uv_dict):
+    len_rig = {}
+    len_rig['pelvis2right_hip'] = 0.11504147358444483
+    len_rig['right_hip2right_knee'] = 0.37678782215893153
+    len_rig['right_knee2right_ankle'] = 0.40058266700996176
+    len_rig['pelvis2left_hip'] = 0.11504147358444483
+    len_rig['left_hip2left_knee'] = 0.37678782215893153
+    len_rig['left_knee2left_ankle'] = 0.40058266700996176
+    len_rig['pelvis2spine'] = 0.1122145063476423
+    len_rig['spine2right_shoulder'] = 0.38384200442376404
+    len_rig['right_shoulder2right_elbow'] = 0.261372309763501
+    len_rig['right_elbow2right_wrist'] = 0.24939829355374343
+    len_rig['spine2left_shoulder'] = 0.38384200442376404
+    len_rig['left_shoulder2left_elbow'] = 0.261372309763501
+    len_rig['left_elbow2left_wrist'] = 0.24939829355374343
+
+    p_target = {}
+    p_target['right_hip'] = p[0,:] + len_rig['pelvis2right_hip'] * uv_dict['pelvis2right_hip']
+    p_target['right_knee'] = p_target['right_hip'] + len_rig['right_hip2right_knee'] * uv_dict['right_hip2right_knee']
+    p_target['right_ankle'] = p_target['right_knee'] + len_rig['right_knee2right_ankle'] * uv_dict['right_knee2right_ankle']
+    p_target['left_hip'] = p[0,:] + len_rig['pelvis2left_hip'] * uv_dict['pelvis2left_hip']
+    p_target['left_knee'] = p_target['left_hip'] + len_rig['left_hip2left_knee'] * uv_dict['left_hip2left_knee']
+    p_target['left_ankle'] = p_target['left_knee'] + len_rig['left_knee2left_ankle'] * uv_dict['left_knee2left_ankle']
+    p_target['spine1'] = p[0,:] + len_rig['pelvis2spine'] * uv_dict['pelvis2spine']
+    p_target['right_shoulder'] = p_target['spine1'] + len_rig['spine2right_shoulder'] * uv_dict['spine2right_shoulder']
+    p_target['right_elbow'] = p_target['right_shoulder'] + len_rig['right_shoulder2right_elbow'] * uv_dict['right_shoulder2right_elbow']
+    p_target['right_wrist'] = p_target['right_elbow'] + len_rig['right_elbow2right_wrist'] * uv_dict['right_elbow2right_wrist']
+    p_target['left_shoulder'] = p_target['spine1'] + len_rig['spine2left_shoulder'] * uv_dict['spine2left_shoulder']
+    p_target['left_elbow'] = p_target['left_shoulder'] + len_rig['left_shoulder2left_elbow'] * uv_dict['left_shoulder2left_elbow']
+    p_target['left_wrist'] = p_target['left_elbow'] + len_rig['left_elbow2left_wrist'] * uv_dict['left_elbow2left_wrist']
+    
+    return p_target
