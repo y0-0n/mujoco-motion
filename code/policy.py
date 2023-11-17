@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
+from rl_games.algos_torch.running_mean_std import RunningMeanStd
 
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20
@@ -27,7 +28,7 @@ class MLP(nn.Module):
 
         # Fully connected 레이어 생성
         self.fc_layers = nn.ModuleList()
-        self.hidden_layers = [hidden_dim] * 3
+        self.hidden_layers = [hidden_dim] * 4
         in_layer = input_dim
 
         for i, hidden_layer in enumerate(self.hidden_layers):
@@ -62,16 +63,16 @@ class GaussianPolicy(MLP):
             hidden_dim=hidden_dim,
             init_w=init_w,
         )
-
+        self.running_mean_std = RunningMeanStd(input_dim)
         self.is_deterministic = is_deterministic
         self.last_fc_log_std = nn.Linear(hidden_dim, output_dim)
         self.last_fc_log_std.weight.data.uniform_(-init_w, init_w)
         self.last_fc_log_std.bias.data.uniform_(-init_w, init_w)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        x = self.running_mean_std(x)
         for fc_layer in self.fc_layers:
             x = self.hidden_activation(fc_layer(x))
-
         mean = self.last_fc_layer(x)
         log_std = self.last_fc_log_std(x)
         log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
