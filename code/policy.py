@@ -55,7 +55,7 @@ class GaussianPolicy(MLP):
         output_dim: int,
         hidden_dim: int,
         is_deterministic: bool = False,
-        init_w: float = 1e-3,
+        init_w: float = 1,
     ) -> None:
         super().__init__(
             input_dim=input_dim,
@@ -64,6 +64,7 @@ class GaussianPolicy(MLP):
             init_w=init_w,
         )
         self.running_mean_std = RunningMeanStd(input_dim)
+        self.action_mean_std = RunningMeanStd(output_dim)
         self.is_deterministic = is_deterministic
         self.last_fc_log_std = nn.Linear(hidden_dim, output_dim)
         self.last_fc_log_std.weight.data.uniform_(-init_w, init_w)
