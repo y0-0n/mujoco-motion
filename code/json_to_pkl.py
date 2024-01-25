@@ -10,5 +10,5 @@ def json_to_pkl(json_path: str):
     
 
 if __name__ == "__main__":
-    json_path = "data/map.json"
+    json_path = "data/smpl walk zpos edited 0.5%.json"
     json_to_pkl(json_path=json_path)
