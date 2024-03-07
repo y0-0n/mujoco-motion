@@ -95,7 +95,7 @@
     </asset>
 
     <worldbody>
-        <geom name="floor" type="plane" conaffinity="1" size="50 50 .05" material="blue_grid"/>
+        <!-- <geom name="floor" type="plane" conaffinity="1" size="50 50 .05" material="blue_grid"/> -->
         <body name="base" pos="0 0 0.95">
             <freejoint name="base"/>
             <geom name="base" type="sphere" pos="0 0 0" size="0.06"/>
