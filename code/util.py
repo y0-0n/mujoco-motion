@@ -5,6 +5,7 @@ import shapely as sp # handle polygon
 import mediapy as media
 from shapely import Polygon,LineString,Point # handle polygons
 from scipy.spatial.distance import cdist
+import torch
 
 def rot_mtx(deg):
     """
@@ -30,8 +31,8 @@ def t2pr(T):
     """
         T to p and R
     """   
-    p = T[:3,3]
-    R = T[:3,:3]
+    p = T[...,:3,3]
+    R = T[...,:3,:3]
     return p,R
 
 def t2p(T):
@@ -140,6 +141,25 @@ def r2quat(R):
         it.iternext()
     return q
 
+def quat2r(q):
+    q = q / np.linalg.norm(q)
+    x = q[..., 1]
+    y = q[..., 2]
+    z = q[..., 3]
+    w = q[..., 0]
+
+    R = np.zeros(q.shape[:-1]+(3, 3), dtype=np.float64)
+    R[..., 0, 0] = w**2 + x**2 - y**2 - z**2
+    R[..., 0, 1] = 2*x*y - 2*w*z
+    R[..., 0, 2] = 2*x*z + 2*w*y
+    R[..., 1, 0] = 2*x*y + 2*w*z
+    R[..., 1, 1] = w**2 - x**2 + y**2 - z**2
+    R[..., 1, 2] = 2*y*z - 2*w*x
+    R[..., 2, 0] = 2*x*z - 2*w*y
+    R[..., 2, 1] = 2*y*z + 2*w*x
+    R[..., 2, 2] = w**2 - x**2 - y**2 + z**2
+
+    return R
 def skew(x):
     """ 
         Get a skew-symmetric matrix
@@ -1237,33 +1257,86 @@ def get_uv_dict_smpl(p):
     uv_dict = {}
 
     # Lower Body
-    uv_dict['pelvis2right_hip'] = np_uv(p[1,:] - p[0,:])
-    uv_dict['right_hip2right_knee'] = np_uv(p[2,:] - p[1,:])
-    uv_dict['right_knee2right_ankle'] = np_uv(p[3,:] - p[2,:])
-    uv_dict['pelvis2left_hip'] = np_uv(p[5,:] - p[0,:])
-    uv_dict['left_hip2left_knee'] = np_uv(p[6,:] - p[5,:])
-    uv_dict['left_knee2left_ankle'] = np_uv(p[7,:] - p[6,:])
+    # uv_dict['pelvis2right_hip'] = np_uv(p[1,:] - p[0,:])
+    # uv_dict['right_hip2right_knee'] = np_uv(p[2,:] - p[1,:])
+    # uv_dict['right_knee2right_ankle'] = np_uv(p[3,:] - p[2,:])
+    # uv_dict['pelvis2left_hip'] = np_uv(p[5,:] - p[0,:])
+    # uv_dict['left_hip2left_knee'] = np_uv(p[6,:] - p[5,:])
+    # uv_dict['left_knee2left_ankle'] = np_uv(p[7,:] - p[6,:])
+
+    uv_dict['base2right_pelvis'] = np_uv(p[68,:] - p[0,:])
+    uv_dict['right_pelvis2right_knee'] = np_uv(p[69,:] - p[68,:])
+    uv_dict['right_knee2right_ankle'] = np_uv(p[70,:] - p[69,:])
+    uv_dict['base2left_pelvis'] = np_uv(p[64,:] - p[0,:])
+    uv_dict['left_pelvis2left_knee'] = np_uv(p[65,:] - p[64,:])
+    uv_dict['left_knee2left_ankle'] = np_uv(p[66,:] - p[65,:])
     
     # Upper Body
-    uv_dict['pelvis2spine'] = np_uv(p[9,:] - p[0,:])
-    uv_dict['spine2right_shoulder'] = np_uv(p[17,:] - p[9,:])
-    uv_dict['right_shoulder2right_elbow'] = np_uv(p[18,:] - p[17,:])
-    uv_dict['right_elbow2right_wrist'] = np_uv(p[19,:] - p[18,:])
-    uv_dict['spine2left_shoulder'] = np_uv(p[45,:] - p[9,:])
-    uv_dict['left_shoulder2left_elbow'] = np_uv(p[46,:] - p[45,:])
-    uv_dict['left_elbow2left_wrist'] = np_uv(p[47,:] - p[46,:])
+    # uv_dict['pelvis2spine'] = np_uv(p[9,:] - p[0,:])
+    # uv_dict['spine2right_shoulder'] = np_uv(p[17,:] - p[9,:])
+    # uv_dict['right_shoulder2right_elbow'] = np_uv(p[18,:] - p[17,:])
+    # uv_dict['right_elbow2right_wrist'] = np_uv(p[19,:] - p[18,:])
+    # uv_dict['spine2left_shoulder'] = np_uv(p[45,:] - p[9,:])
+    # uv_dict['left_shoulder2left_elbow'] = np_uv(p[46,:] - p[45,:])
+    # uv_dict['left_elbow2left_wrist'] = np_uv(p[47,:] - p[46,:])
+
+    uv_dict['base2spine'] = np_uv(p[1,:] - p[0,:])
+    uv_dict['spine2right_shoulder'] = np_uv(p[34,:] - p[1,:])
+    uv_dict['right_shoulder2right_elbow'] = np_uv(p[35,:] - p[34,:])
+    uv_dict['right_elbow2right_wrist'] = np_uv(p[36,:] - p[35,:])
+    uv_dict['spine2left_shoulder'] = np_uv(p[6,:] - p[1,:])
+    uv_dict['left_shoulder2left_elbow'] = np_uv(p[7,:] - p[6,:])
+    uv_dict['left_elbow2left_wrist'] = np_uv(p[8,:] - p[7,:])
 
     return uv_dict
 
+def get_uv_dict_smpl_cmu(r):
+    uv_dict = {}
+
+    # Lower Body
+    # uv_dict['pelvis2right_hip'] = np_uv(p[1,:] - p[0,:])
+    # uv_dict['right_hip2right_knee'] = np_uv(p[2,:] - p[1,:])
+    # uv_dict['right_knee2right_ankle'] = np_uv(p[3,:] - p[2,:])
+    # uv_dict['pelvis2left_hip'] = np_uv(p[5,:] - p[0,:])
+    # uv_dict['left_hip2left_knee'] = np_uv(p[6,:] - p[5,:])
+    # uv_dict['left_knee2left_ankle'] = np_uv(p[7,:] - p[6,:])
+
+    uv_dict['base2right_pelvis'] = np_uv(r[27]) # np_uv(p[68,:] - p[0,:])
+    uv_dict['right_pelvis2right_knee'] = np_uv(r[28]) # np_uv(p[69,:] - p[68,:])
+    uv_dict['right_knee2right_ankle'] = np_uv(r[29]) # np_uv(p[70,:] - p[69,:])
+    uv_dict['base2left_pelvis'] = np_uv(r[33]) # np_uv(p[64,:] - p[0,:])
+    uv_dict['left_pelvis2left_knee'] = np_uv(r[34]) # np_uv(p[65,:] - p[64,:])
+    uv_dict['left_knee2left_ankle'] = np_uv(r[35]) # np_uv(p[66,:] - p[65,:])
+    
+    # Upper Body
+    # uv_dict['pelvis2spine'] = np_uv(p[9,:] - p[0,:])
+    # uv_dict['spine2right_shoulder'] = np_uv(p[17,:] - p[9,:])
+    # uv_dict['right_shoulder2right_elbow'] = np_uv(p[18,:] - p[17,:])
+    # uv_dict['right_elbow2right_wrist'] = np_uv(p[19,:] - p[18,:])
+    # uv_dict['spine2left_shoulder'] = np_uv(p[45,:] - p[9,:])
+    # uv_dict['left_shoulder2left_elbow'] = np_uv(p[46,:] - p[45,:])
+    # uv_dict['left_elbow2left_wrist'] = np_uv(p[47,:] - p[46,:])
+
+    uv_dict['base2spine'] = np_uv(r[3]) # np_uv(p[1,:] - p[0,:])
+    uv_dict['spine2right_shoulder'] = np_uv(r[5]) # np_uv(p[34,:] - p[1,:])
+    uv_dict['right_shoulder2right_elbow'] = np_uv(r[6]) # np_uv(p[35,:] - p[34,:])
+    uv_dict['right_elbow2right_wrist'] = np_uv(r[7]) # np_uv(p[36,:] - p[35,:])
+    uv_dict['spine2left_shoulder'] = np_uv(r[14]) # np_uv(p[6,:] - p[1,:])
+    uv_dict['left_shoulder2left_elbow'] = np_uv(r[15]) # np_uv(p[7,:] - p[6,:])
+    uv_dict['left_elbow2left_wrist'] = np_uv(r[16]) # np_uv(p[8,:] - p[7,:])
+
+    return uv_dict
+
+
 def get_p_target_smpl(p, uv_dict):
     len_rig = {}
-    len_rig['pelvis2right_hip'] = 0.11504147358444483
-    len_rig['right_hip2right_knee'] = 0.37678782215893153
+    len_rig['base2right_pelvis'] = 0.11504147358444483
+    len_rig['right_pelvis2right_knee'] = 0.37678782215893153
     len_rig['right_knee2right_ankle'] = 0.40058266700996176
-    len_rig['pelvis2left_hip'] = 0.11504147358444483
-    len_rig['left_hip2left_knee'] = 0.37678782215893153
+    len_rig['base2left_pelvis'] = 0.11504147358444483
+    len_rig['left_pelvis2left_knee'] = 0.37678782215893153
     len_rig['left_knee2left_ankle'] = 0.40058266700996176
-    len_rig['pelvis2spine'] = 0.1122145063476423
+    len_rig['base2spine'] = 0.1122145063476423
     len_rig['spine2right_shoulder'] = 0.38384200442376404
     len_rig['right_shoulder2right_elbow'] = 0.261372309763501
     len_rig['right_elbow2right_wrist'] = 0.24939829355374343
@@ -1272,13 +1345,13 @@ def get_p_target_smpl(p, uv_dict):
     len_rig['left_elbow2left_wrist'] = 0.24939829355374343
 
     p_target = {}
-    p_target['right_hip'] = p[0,:] + len_rig['pelvis2right_hip'] * uv_dict['pelvis2right_hip']
-    p_target['right_knee'] = p_target['right_hip'] + len_rig['right_hip2right_knee'] * uv_dict['right_hip2right_knee']
+    p_target['right_pelvis'] = p[0,:] + len_rig['base2right_pelvis'] * uv_dict['base2right_pelvis']
+    p_target['right_knee'] = p_target['right_pelvis'] + len_rig['right_pelvis2right_knee'] * uv_dict['right_pelvis2right_knee']
     p_target['right_ankle'] = p_target['right_knee'] + len_rig['right_knee2right_ankle'] * uv_dict['right_knee2right_ankle']
-    p_target['left_hip'] = p[0,:] + len_rig['pelvis2left_hip'] * uv_dict['pelvis2left_hip']
-    p_target['left_knee'] = p_target['left_hip'] + len_rig['left_hip2left_knee'] * uv_dict['left_hip2left_knee']
+    p_target['left_pelvis'] = p[0,:] + len_rig['base2left_pelvis'] * uv_dict['base2left_pelvis']
+    p_target['left_knee'] = p_target['left_pelvis'] + len_rig['left_pelvis2left_knee'] * uv_dict['left_pelvis2left_knee']
     p_target['left_ankle'] = p_target['left_knee'] + len_rig['left_knee2left_ankle'] * uv_dict['left_knee2left_ankle']
-    p_target['spine1'] = p[0,:] + len_rig['pelvis2spine'] * uv_dict['pelvis2spine']
+    p_target['spine1'] = p[0,:] + len_rig['base2spine'] * uv_dict['base2spine']
     p_target['right_shoulder'] = p_target['spine1'] + len_rig['spine2right_shoulder'] * uv_dict['spine2right_shoulder']
     p_target['right_elbow'] = p_target['right_shoulder'] + len_rig['right_shoulder2right_elbow'] * uv_dict['right_shoulder2right_elbow']
     p_target['right_wrist'] = p_target['right_elbow'] + len_rig['right_elbow2right_wrist'] * uv_dict['right_elbow2right_wrist']
@@ -1287,3 +1360,211 @@ def get_p_target_smpl(p, uv_dict):
     p_target['left_wrist'] = p_target['left_elbow'] + len_rig['left_elbow2left_wrist'] * uv_dict['left_elbow2left_wrist']
     
     return p_target
+
+def finite_difference_matrix(n, dt, order):
+    """
+    n: number of points
+    dt: time interval
+    order: (1=velocity, 2=acceleration, 3=jerk)
+    """ 
+    # Order
+    if order == 1:  # velocity
+        coeffs = np.array([-1, 1])
+    elif order == 2:  # acceleration
+        coeffs = np.array([1, -2, 1])
+    elif order == 3:  # jerk
+        coeffs = np.array([-1, 3, -3, 1])
+    else:
+        raise ValueError("Order must be 1, 2, or 3.")
+
+    # Fill-in matrix
+    mat = np.zeros((n, n))
+    for i in range(n - order):
+        for j, c in enumerate(coeffs):
+            mat[i, i + j] = c
+    return mat / (dt ** order)
+
+def get_A_vel_acc_jerk(n=100,dt=1e-2):
+    """
+        Get matrices to compute velocities, accelerations, and jerks
+    """
+    A_vel  = finite_difference_matrix(n,dt,order=1)
+    A_acc  = finite_difference_matrix(n,dt,order=2)
+    A_jerk = finite_difference_matrix(n,dt,order=3)
+    return A_vel,A_acc,A_jerk
+
+def slerp(q0, q1, t):
+    qx, qy, qz, qw = 0, 1, 2, 3
+
+    cos_half_theta = q0[..., qw] * q1[..., qw] \
+                   + q0[..., qx] * q1[..., qx] \
+                   + q0[..., qy] * q1[..., qy] \
+                   + q0[..., qz] * q1[..., qz]
+    
+    neg_mask = cos_half_theta < 0
+    q1 = q1.copy()
+    q1[neg_mask] = -q1[neg_mask]
+    cos_half_theta = np.abs(cos_half_theta)
+    cos_half_theta = np.expand_dims(cos_half_theta, axis=-1)
+
+    half_theta = np.arccos(cos_half_theta)
+    sin_half_theta = np.sqrt(1.0 - cos_half_theta * cos_half_theta)
+
+    ratioA = np.sin((1 - t) * half_theta) / sin_half_theta
+    ratioB = np.sin(t * half_theta) / sin_half_theta; 
+    
+    new_q_x = ratioA * q0[..., qx:qx+1] + ratioB * q1[..., qx:qx+1]
+    new_q_y = ratioA * q0[..., qy:qy+1] + ratioB * q1[..., qy:qy+1]
+    new_q_z = ratioA * q0[..., qz:qz+1] + ratioB * q1[..., qz:qz+1]
+    new_q_w = ratioA * q0[..., qw:qw+1] + ratioB * q1[..., qw:qw+1]
+
+    cat_dim = len(new_q_w.shape) - 1
+    new_q = np.concatenate([new_q_x, new_q_y, new_q_z, new_q_w], axis=cat_dim)
+
+    new_q = np.where(np.abs(sin_half_theta) < 0.001, 0.5 * q0 + 0.5 * q1, new_q)
+    new_q = np.where(np.abs(cos_half_theta) >= 1, q0, new_q)
+
+    return new_q
+
+def block_mtx(M11,M12,M21,M22):
+    M_upper = np.concatenate((M11,M12),axis=1)
+    M_lower = np.concatenate((M21,M22),axis=1)
+    M = np.concatenate((M_upper,M_lower),axis=0)
+    return M    
+
+def det_inc(det_A,inv_A,b,c):
+    """
+        Incremental determinant computation
+    """
+    out = det_A * (c - b.T @ inv_A @ b)
+    return out
+
+def inv_inc(inv_A,b,c):
+    """
+        Incremental inverse using matrix inverse lemma
+    """
+    k   = c - b.T @ inv_A @ b
+    M11 = inv_A + 1/k * inv_A @ b @ b.T @ inv_A
+    M12 = -1/k * inv_A @ b
+    M21 = -1/k * b.T @ inv_A
+    M22 = 1/k
+    M   = block_mtx(M11=M11,M12=M12,M21=M21,M22=M22)
+    return M
+
+def ikdpp(
+    xs_total,              # [N x D]
+    qs_total = None,       # [N]
+    n_select = 10,
+    n_trunc  = np.inf,
+    hyp      = {'g':1.0,'l':1.0}
+    ):
+    """
+        (Truncated) Incremental k-DPP
+    """
+    n_total     = xs_total.shape[0]
+    idxs_remain = np.arange(0,n_total,1,dtype=np.int32)
+
+    if n_total <= n_select: # in case of selecting more than what we already have
+        xs_ikdpp   = xs_total
+        idxs_ikdpp = idxs_remain
+        return xs_ikdpp,idxs_ikdpp
+
+    idxs_select = []
+    for i_idx in range(n_select+1): # loop
+        n_remain = len(idxs_remain)
+        if i_idx == 0: # random first
+            idx_select = np.random.permutation(n_total)[0]
+            if qs_total is not None:
+                q = 1.0+qs_total[idx_select]
+            else:
+                q = 1.0
+            det_K_prev = q
+            K_inv_prev = 1/q*np.ones(shape=(1,1))
+        else:
+            xs_select = xs_total[idxs_select,:]
+            # Compute determinants
+            dets = np.zeros(shape=n_remain)
+            # for r_idx in range(n_remain): # for the remained indices
+            for r_idx in np.random.permutation(n_remain)[:min(n_remain,n_trunc)]:
+                # Compute the determinant of the appended kernel matrix 
+                k_vec     = kernel_se(
+                    X1  = xs_select,
+                    X2  = xs_total[idxs_remain[r_idx],:].reshape(1,-1),
+                    hyp = hyp)
+                if qs_total is not None:
+                    q = 1.0+qs_total[idxs_remain[r_idx]]
+                else:
+                    q = 1.0
+                det_check = det_inc(
+                    det_A = det_K_prev,
+                    inv_A = K_inv_prev,
+                    b     = k_vec,
+                    c     = q)
+                # Append the determinant
+                dets[r_idx] = det_check
+            # Get the index with the highest determinant
+            idx_temp   = np.where(dets == np.amax(dets))[0][0]
+            idx_select = idxs_remain[idx_temp]
+            
+            # Compute 'det_K_prev' and 'K_inv_prev'
+            det_K_prev = dets[idx_temp]
+            k_vec      = kernel_se(
+                xs_select,
+                xs_total[idx_select,:].reshape(1,-1),
+                hyp = hyp)
+            if qs_total is not None:
+                q = 1+qs_total[idx_select]
+            else:
+                q = 1.0
+            K_inv_prev = inv_inc(
+                inv_A = K_inv_prev,
+                b     = k_vec,
+                c     = q)
+        # Remove currently selected index from 'idxs_remain'
+        idxs_remain = idxs_remain[idxs_remain != idx_select]
+        # Append currently selected index to 'idxs_select'
+        idxs_select.append(idx_select)
+    # Select the subset from 'xs_total' with removing the first sample
+    idxs_select = idxs_select[1:] # excluding the first one
+    idxs_ikdpp  = np.array(idxs_select)
+    xs_ikdpp    = xs_total[idxs_ikdpp]
+    return xs_ikdpp,idxs_ikdpp
+
+def np2torch(x_np,device='cpu'):
+    """
+        Numpy to Torch
+    """
+    if x_np is None:
+        x_torch = None
+    else:
+        x_torch = torch.tensor(x_np,dtype=torch.float32,device=device)
+    return x_torch
+
+def torch2np(x_torch):
+    """
+        Torch to Numpy
+    """
+    if x_torch is None:
+        x_np = None
+    else:
+        x_np = x_torch.detach().cpu().numpy()
+    return x_np
+
+def save_torch_wb(OBJ,folder_path='../weight',pth_name='wb.pth',VERBOSE=True):
+    """
+        Save torch weights and biases
+    """
+    os.makedirs(folder_path,exist_ok=True)
+    pth_path = os.path.join(folder_path,pth_name)
+    torch.save(obj=OBJ.state_dict(),f=pth_path)
+    if VERBOSE:
+        print ("[%s] saved."%(pth_path))
+
+def load_torch_wb(OBJ,folder_path='../weight',pth_name='wb.pth',VERBOSE=True):
+    """
+        Load torch weights and biases
+    """
+    pth_path = os.path.join(folder_path,pth_name)
+    OBJ.load_state_dict(torch.load(pth_path))
+    if VERBOSE:
+        print ("[%s] loaded."%(pth_path))
