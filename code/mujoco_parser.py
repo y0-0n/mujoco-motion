@@ -36,8 +36,15 @@ class MuJoCoParserClass(object):
         """
             Parse an xml file
         """
-        self.full_xml_path    = os.path.abspath(os.path.join(os.getcwd(),self.rel_xml_path))
-        self.model            = mujoco.MjModel.from_xml_path(self.full_xml_path)
+        if self.rel_xml_path.split('.')[-1] == 'xml':
+            self.full_xml_path    = os.path.abspath(os.path.join(os.getcwd(),self.rel_xml_path))
+            self.model            = mujoco.MjModel.from_xml_path(self.full_xml_path)
+            self.data             = mujoco.MjData(self.model)
+        elif self.rel_xml_path.split('.')[-1] == 'mjb':
+            self.full_mjb_path    = os.path.abspath(os.path.join(os.getcwd(),self.rel_xml_path))
+            self.model = mujoco.MjModel.from_binary_path(self.full_mjb_path)
+            self.data = mujoco.MjData(self.model)
+        # self.model            = mujoco.MjModel.from_xml_path(self.full_xml_path)
         self.data             = mujoco.MjData(self.model)
         self.dt               = self.model.opt.timestep
         self.HZ               = int(1/self.dt)
@@ -904,6 +911,13 @@ class MuJoCoParserClass(object):
         from mujoco import viewer
         viewer.launch(self.model)
 
+    def open_interactive_viewer_passive(self):
+        """
+            Open interactive viewer
+        """
+        from mujoco import viewer
+        viewer.launch_passive(self.model, self.data)
+
     def get_T_viewer(self,fovy=45):
         """
             Get viewer pose
@@ -1053,7 +1067,7 @@ class MuJoCoParserClass(object):
         """
         return np.array([self.get_qpos_joint(joint_name) for joint_name in joint_names]).squeeze()
     
-    def get_qvel_joint(self,joint_names):
+    def get_qvel_joints(self,joint_names):
         """
             Get multiple joint velocities from 'joint_names'
         """
@@ -1096,6 +1110,15 @@ class MuJoCoParserClass(object):
             env.step(ctrl=q,ctrl_idxs=idxs_step) # <= HERE
         """
         return [self.ctrl_joint_names.index(jname) for jname in joint_names]
+    
+    def get_idxs_body(self,body_names):
+        """ 
+            Get indices for using env.forward()
+            Example)
+            env.forward(q=q,joint_idxs=idxs_fwd) # <= HERE
+        """
+        return [self.model.body(bname).id for bname in body_names]
+
 
     def get_geom_idxs_from_body_name(self,body_name):
         """ 
